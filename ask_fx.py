@@ -110,6 +110,9 @@ if prompt:
         {"messages" : [{"role" : "user", "content" : prompt}]},
         config={"configurable": {"thread_id": st.session_state.thread_id}}
     )
+
+    result = response["messages"][-1].content
+
     st.session_state.messages.append({"role" : "user", "content" : prompt})
     st.session_state.messages.append({"role" : "ai", "content" : response['messages'][-1].content})
 
