@@ -5,6 +5,7 @@ from langchain.tools import tool
 from langchain.agents import create_agent
 from langchain_tavily import TavilySearch
 import requests
+from datetime import date
 
 load_dotenv()
 
@@ -71,10 +72,24 @@ agent = create_agent(model, tools = [get_weather, get_exchange_rate, tavily_tool
                         투자 조언처럼 말하지 말고, 조회된 환율 정보만 간단히 설명해라.
                         """)
 
-st.title("1 페이지 입니다.")
+st.title("실시간 환율 챗봇입니다.")
 
-if "messages" not in st.session_state :
+if "messages" not in st.session_state:
     st.session_state.messages = []
+
+if "exchange_history" not in st.session_state:
+    st.session_state.exchange_history = []
+
+if "history_date" not in st.session_state:
+    st.session_state.history_date = None
+
+with st.sidebar:
+    st.subheader("오늘 조회한 환율")
+    if not st.session_state.exchange_history:
+        st.write("조회된 환율이 없습니다.")
+    else:
+        for item in st.session_state.exchange_history:
+            st.write(item)
 
 prompt = st.chat_input("무엇이든 물어보세요.")
 
@@ -85,6 +100,14 @@ if prompt:
     )
     st.session_state.messages.append({"role" : "user", "content" : prompt})
     st.session_state.messages.append({"role" : "ai", "content" : response['messages'][-1].content})
+
+
+
+today = date.today().isoformat()
+
+if st.session_state.history_date != today:
+    st.session_state.exchange_history = []
+    st.session_state.history_date = today
 
 for message in st.session_state.messages : 
     with st.chat_message(message["role"]) : 
