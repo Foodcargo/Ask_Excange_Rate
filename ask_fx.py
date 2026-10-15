@@ -6,10 +6,18 @@ from langchain.agents import create_agent
 from langchain_tavily import TavilySearch
 import requests
 from datetime import date
+from langgraph.checkpoint.memory import InMemorySaver
 
 load_dotenv()
 
+
 model = init_chat_model("gpt-5.4-mini")
+
+if "agent_memory" not in st.session_state:
+    st.session_state.agent_memory = InMemorySaver()
+
+if "thread_id" not in st.session_state:
+    st.session_state.thread_id = "user-1"
 
 @tool
 def get_weather(location : str) -> str :
@@ -50,7 +58,10 @@ tavily_tool = TavilySearch(
 
 )
 
-agent = create_agent(model, tools = [get_weather, get_exchange_rate, tavily_tool],
+agent = create_agent(model,
+    tools=[get_weather, get_exchange_rate, tavily_tool],
+    checkpointer=st.session_state.agent_memory,
+
                      system_prompt="""
                         너는 환율 정보를 알려주는 친절한 금융 정보 assistant다.
 
@@ -96,7 +107,8 @@ prompt = st.chat_input("무엇이든 물어보세요.")
 if prompt:
     # response = model.invoke(prompt)
     response = agent.invoke(
-        {"messages" : [{"role" : "user", "content" : prompt}]}
+        {"messages" : [{"role" : "user", "content" : prompt}]},
+        config={"configurable": {"thread_id": st.session_state.thread_id}}
     )
     st.session_state.messages.append({"role" : "user", "content" : prompt})
     st.session_state.messages.append({"role" : "ai", "content" : response['messages'][-1].content})
